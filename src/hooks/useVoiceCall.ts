@@ -27,7 +27,9 @@ export function useVoiceCall() {
   const client = getAgoraClient();
 
   useEffect(() => {
+    // @ts-ignore - Agora SDK type mismatch workaround
     const handlePublished = async (user: IAgoraRTCRemoteUser, mediaType: 'audio' | 'video') => {
+      // @ts-ignore - subscribe() type issue with remote user
       await client.subscribe(user, mediaType);
       if (mediaType === 'audio' && user.audioTrack) {
         user.audioTrack.play();
