@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
+import { Analytics } from '@vercel/analytics/react';
 
 function AuthenticatedLayout() {
   return (
@@ -47,6 +48,7 @@ function App() {
           </motion.div>
         </AnimatePresence>
       </div>
+      <Analytics />
     </ErrorBoundary>
   );
 }
