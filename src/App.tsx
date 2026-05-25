@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { useAuthStore } from './store/useAuthStore';
 import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
@@ -47,6 +48,7 @@ function App() {
           </motion.div>
         </AnimatePresence>
       </div>
+      <Analytics />
     </ErrorBoundary>
   );
 }
