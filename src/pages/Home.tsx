@@ -110,7 +110,7 @@ export default function Home({ tab }: HomeProps) {
           </div>
           {currentUser ? (
             <div className="flex items-center gap-3">
-              <Avatar username={currentUser.username} size={36} />
+              <Avatar username={currentUser.username} avatar={currentUser.avatar} size={36} />
               <div>
                 <p className="text-sm font-medium text-text">{currentUser.username}</p>
                 <StatusDot status={currentUser.status} />
@@ -212,7 +212,7 @@ export default function Home({ tab }: HomeProps) {
                           className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface px-4 py-4 text-left transition hover:bg-background"
                         >
                           <div className="flex items-center gap-3">
-                            <Avatar username={contact.username} size={32} />
+                            <Avatar username={contact.username} avatar={contact.avatar} size={32} />
                             <div>
                               <p className="text-base font-semibold text-text">{contact.username}</p>
                               <p className="text-sm text-text-secondary">{contact.status}</p>
@@ -251,7 +251,7 @@ export default function Home({ tab }: HomeProps) {
                     className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface px-4 py-4 text-left transition hover:bg-background"
                   >
                     <div className="flex items-center gap-3">
-                      <Avatar username={contact.username} size={32} />
+                      <Avatar username={contact.username} avatar={contact.avatar} size={32} />
                       <div>
                         <p className="text-base font-medium text-text">{contact.username}</p>
                         <p className="mt-1 text-sm text-text-secondary">{contact.status}</p>

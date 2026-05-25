@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import AgoraRTC, {
   IAgoraRTCClient,
   IAgoraRTCRemoteUser,
-  ILocalAudioTrack,
-  IRemoteAudioTrack
+  ILocalAudioTrack
 } from 'agora-rtc-sdk-ng';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCallStore } from '../store/useCallStore';
@@ -27,14 +26,24 @@ export function useVoiceCall() {
   const client = getAgoraClient();
 
   useEffect(() => {
-    // @ts-ignore - Agora SDK type mismatch workaround
-    const handlePublished = async (user: IAgoraRTCRemoteUser, mediaType: 'audio' | 'video') => {
-      // @ts-ignore - subscribe() type issue with remote user
+    const handlePublished = async (
+      user: IAgoraRTCRemoteUser,
+      mediaType: 'audio' | 'video' | 'datachannel'
+    ) => {
+      if (mediaType === 'datachannel') {
+        return;
+      }
+
       await client.subscribe(user, mediaType);
+
       if (mediaType === 'audio' && user.audioTrack) {
         user.audioTrack.play();
       }
-      setRemoteStreams((current) => [...current, user.uid.toString()]);
+
+      const remoteUid = user.uid.toString();
+      setRemoteStreams((current) =>
+        current.includes(remoteUid) ? current : [...current, remoteUid]
+      );
     };
 
     const handleLeft = (user: IAgoraRTCRemoteUser) => {
