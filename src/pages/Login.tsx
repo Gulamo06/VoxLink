@@ -43,7 +43,8 @@ export default function Login() {
     <div className="min-h-screen bg-background text-text flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm rounded-[26px] border border-border bg-surface p-6">
         <div className="space-y-4">
-          <div>
+          <div className="flex flex-col items-center justify-center text-center">
+            <img src="/logo.png" alt="VoxLink Logo" className="h-16 w-16 mb-4 rounded-xl shadow-lg bg-black" />
             <p className="text-xs uppercase tracking-[0.28em] text-text-secondary">VoxLink</p>
             <h1 className="mt-3 text-3xl font-semibold text-text">Welcome</h1>
           </div>

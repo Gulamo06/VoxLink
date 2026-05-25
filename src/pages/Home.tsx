@@ -101,9 +101,12 @@ export default function Home({ tab }: HomeProps) {
       {/* Header */}
       <div className="border-b border-border bg-background px-5 py-5">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-text-secondary">VoxLink</p>
-            <h1 className="mt-3 text-3xl font-semibold text-text">{tabLabel}</h1>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="VoxLink Logo" className="h-10 w-10 rounded-lg shadow-sm bg-black" />
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.28em] text-text-secondary">VoxLink</p>
+              <h1 className="mt-1 text-2xl font-semibold text-text">{tabLabel}</h1>
+            </div>
           </div>
           {currentUser ? (
             <div className="flex items-center gap-3">

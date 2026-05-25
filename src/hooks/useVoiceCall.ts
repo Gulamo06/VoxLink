@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import AgoraRTC, { IAgoraRTCClient, ILocalAudioTrack, IRemoteAudioTrack } from 'agora-rtc-sdk-ng';
+import AgoraRTC, {
+  IAgoraRTCClient,
+  IAgoraRTCRemoteUser,
+  ILocalAudioTrack,
+  IRemoteAudioTrack
+} from 'agora-rtc-sdk-ng';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCallStore } from '../store/useCallStore';
 
@@ -22,16 +27,15 @@ export function useVoiceCall() {
   const client = getAgoraClient();
 
   useEffect(() => {
-    const handlePublished = async (user: { uid: string | number; audioTrack?: IRemoteAudioTrack }, mediaType: string) => {
-      await client.subscribe(user, mediaType as 'audio' | 'video');
-      if (mediaType === 'audio') {
-        const remoteTrack = user.audioTrack as IRemoteAudioTrack;
-        remoteTrack.play();
+    const handlePublished = async (user: IAgoraRTCRemoteUser, mediaType: 'audio' | 'video') => {
+      await client.subscribe(user, mediaType);
+      if (mediaType === 'audio' && user.audioTrack) {
+        user.audioTrack.play();
       }
       setRemoteStreams((current) => [...current, user.uid.toString()]);
     };
 
-    const handleLeft = (user: { uid: string | number }) => {
+    const handleLeft = (user: IAgoraRTCRemoteUser) => {
       setRemoteStreams((current) => current.filter((uid) => uid !== user.uid.toString()));
     };
 

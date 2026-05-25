@@ -31,6 +31,31 @@ A mobile-first voice communication frontend built with React 18, Vite, TypeScrip
    npm run dev
    ```
 
+## Deploying to Vercel
+
+1. Create a Vercel project from this repository.
+2. Set the build command to `npm run build` and the output directory to `dist`.
+3. Add these environment variables in Vercel settings:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_API_URL` (if you deploy a backend or use a remote API)
+   - `VITE_SOCKET_URL` (if using a remote socket server)
+   - `VITE_AGORA_APP_ID`
+4. Deploy and verify the site at the generated Vercel URL.
+
+## Cloud data storage
+
+This app is already wired to Supabase for profile/auth persistence via `src/lib/supabase.ts` and `src/services/authService.ts`.
+
+To save more application data in the cloud, use a Supabase project and create the `profiles` table with columns such as:
+- `id` (primary key)
+- `username`
+- `status`
+- `avatar_url`
+- `created_at`
+
+If you want chat history, contacts, or groups to persist beyond a single server session, you should replace the current in-memory backend store in `server/src/store/index.ts` with a real database backend (Supabase, PostgreSQL, etc.).
+
 ## Backend contract
 
 The app is wired for a Node/Express backend with endpoints:
