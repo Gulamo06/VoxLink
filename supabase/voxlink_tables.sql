@@ -19,6 +19,30 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.contacts (
+  owner_id text not null references public.profiles(id) on delete cascade,
+  contact_id text not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  primary key (owner_id, contact_id),
+  constraint contacts_not_self check (owner_id <> contact_id)
+);
+
+create table if not exists public.groups (
+  id text primary key default gen_random_uuid()::text,
+  name text not null,
+  channel text not null unique,
+  created_by text not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create table if not exists public.group_members (
+  group_id text not null references public.groups(id) on delete cascade,
+  user_id text not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default timezone('utc', now()),
+  primary key (group_id, user_id)
+);
+
 create table if not exists public.messages (
   id text primary key default gen_random_uuid()::text,
   chat_id text not null,
@@ -39,13 +63,37 @@ create index if not exists messages_chat_id_created_at_idx
 create index if not exists messages_sender_id_idx
   on public.messages (sender_id);
 
+create index if not exists contacts_owner_id_idx
+  on public.contacts (owner_id, created_at desc);
+
+create index if not exists contacts_contact_id_idx
+  on public.contacts (contact_id);
+
+create index if not exists groups_created_by_idx
+  on public.groups (created_by, created_at desc);
+
+create index if not exists group_members_user_id_idx
+  on public.group_members (user_id);
+
+create index if not exists group_members_group_id_idx
+  on public.group_members (group_id);
+
 drop trigger if exists profiles_set_updated_at on public.profiles;
 create trigger profiles_set_updated_at
 before update on public.profiles
 for each row
 execute function public.set_updated_at();
 
+drop trigger if exists groups_set_updated_at on public.groups;
+create trigger groups_set_updated_at
+before update on public.groups
+for each row
+execute function public.set_updated_at();
+
 alter table public.profiles enable row level security;
+alter table public.contacts enable row level security;
+alter table public.groups enable row level security;
+alter table public.group_members enable row level security;
 alter table public.messages enable row level security;
 
 do $$
@@ -133,6 +181,133 @@ begin
       to authenticated
       using (true)
       with check (true);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'contacts'
+      and policyname = 'contacts_authenticated_read'
+  ) then
+    create policy contacts_authenticated_read
+      on public.contacts
+      for select
+      to authenticated
+      using (true);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'contacts'
+      and policyname = 'contacts_authenticated_insert'
+  ) then
+    create policy contacts_authenticated_insert
+      on public.contacts
+      for insert
+      to authenticated
+      with check (true);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'contacts'
+      and policyname = 'contacts_authenticated_delete'
+  ) then
+    create policy contacts_authenticated_delete
+      on public.contacts
+      for delete
+      to authenticated
+      using (true);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'groups'
+      and policyname = 'groups_authenticated_read'
+  ) then
+    create policy groups_authenticated_read
+      on public.groups
+      for select
+      to authenticated
+      using (true);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'groups'
+      and policyname = 'groups_authenticated_insert'
+  ) then
+    create policy groups_authenticated_insert
+      on public.groups
+      for insert
+      to authenticated
+      with check (true);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'groups'
+      and policyname = 'groups_authenticated_update'
+  ) then
+    create policy groups_authenticated_update
+      on public.groups
+      for update
+      to authenticated
+      using (true)
+      with check (true);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'group_members'
+      and policyname = 'group_members_authenticated_read'
+  ) then
+    create policy group_members_authenticated_read
+      on public.group_members
+      for select
+      to authenticated
+      using (true);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'group_members'
+      and policyname = 'group_members_authenticated_insert'
+  ) then
+    create policy group_members_authenticated_insert
+      on public.group_members
+      for insert
+      to authenticated
+      with check (true);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'group_members'
+      and policyname = 'group_members_authenticated_delete'
+  ) then
+    create policy group_members_authenticated_delete
+      on public.group_members
+      for delete
+      to authenticated
+      using (true);
   end if;
 end
 $$;

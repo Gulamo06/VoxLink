@@ -4,6 +4,7 @@ import { User, PresenceStatus } from '../types';
 interface ContactsState {
   contacts: User[];
   presence: Record<string, PresenceStatus>;
+  setContacts: (users: User[]) => void;
   addContact: (user: User) => void;
   removeContact: (id: string) => void;
   setPresence: (id: string, status: PresenceStatus) => void;
@@ -12,6 +13,7 @@ interface ContactsState {
 export const useContactsStore = create<ContactsState>((set) => ({
   contacts: [],
   presence: {},
+  setContacts: (users) => set({ contacts: users }),
   addContact: (user) =>
     set((state) => ({
       contacts: state.contacts.some((contact) => contact.id === user.id)

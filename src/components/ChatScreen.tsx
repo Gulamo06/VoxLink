@@ -7,6 +7,7 @@ import { Message } from '../types';
 import VoiceBubble from './VoiceBubble';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import { messageService } from '../services/messageService';
+import { useAuthStore } from '../store/useAuthStore';
 
 interface ChatScreenProps {
   chatId: string;
@@ -19,10 +20,15 @@ const schema = z.object({ text: z.string().optional().default('') });
 
 type FormData = z.infer<typeof schema>;
 
+function prependUnique(messages: Message[], message: Message) {
+  return [message, ...messages.filter((entry) => entry.id !== message.id)];
+}
+
 export default function ChatScreen({ chatId, messages, recipientName, onSend }: ChatScreenProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>(messages);
+  const currentUser = useAuthStore((state) => state.currentUser);
 
   const { recording, blobUrl, recordedBlob, recordingTime, error: recorderError, startRecording, stopRecording, clearRecording, formatTime } =
     useVoiceRecorder();
@@ -34,11 +40,12 @@ export default function ChatScreen({ chatId, messages, recipientName, onSend }: 
   // Setup Realtime listener
   useEffect(() => {
     const unsubscribe = messageService.subscribeToMessages(chatId, (newMessage) => {
-      setLocalMessages((prev) => [newMessage, ...prev]);
+      setLocalMessages((prev) => prependUnique(prev, newMessage));
+      onSend?.(newMessage);
     });
 
     return () => unsubscribe();
-  }, [chatId]);
+  }, [chatId, onSend]);
 
   // Update local messages when prop changes
   useEffect(() => {
@@ -54,7 +61,7 @@ export default function ChatScreen({ chatId, messages, recipientName, onSend }: 
     try {
       if (data.text?.trim()) {
         const message = await messageService.sendMessage(chatId, data.text);
-        setLocalMessages((prev) => [message, ...prev]);
+        setLocalMessages((prev) => prependUnique(prev, message));
         onSend?.(message);
         reset();
       }
@@ -74,7 +81,7 @@ export default function ChatScreen({ chatId, messages, recipientName, onSend }: 
 
     try {
       const message = await messageService.sendVoiceMessage(chatId, recordedBlob);
-      setLocalMessages((prev) => [message, ...prev]);
+      setLocalMessages((prev) => prependUnique(prev, message));
       onSend?.(message);
       clearRecording();
     } catch (err) {
@@ -98,7 +105,13 @@ export default function ChatScreen({ chatId, messages, recipientName, onSend }: 
       {/* Messages */}
       <div className="flex-1 space-y-4 overflow-y-auto mb-6">
         {localMessages.length ? (
-          localMessages.map((message) => <VoiceBubble key={message.id} message={message} isMine={message.senderId !== chatId} />)
+          localMessages.map((message) => (
+            <VoiceBubble
+              key={message.id}
+              message={message}
+              isMine={message.senderId === currentUser?.id}
+            />
+          ))
         ) : (
           <p className="text-sm text-text-secondary">No messages yet. Say hello.</p>
         )}

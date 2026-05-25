@@ -15,7 +15,10 @@ export const useChatStore = create<ChatState>((set) => ({
     set((state) => ({
       messages: {
         ...state.messages,
-        [message.chatId]: [...(state.messages[message.chatId] ?? []), message]
+        [message.chatId]: [
+          message,
+          ...(state.messages[message.chatId] ?? []).filter((entry) => entry.id !== message.id)
+        ]
       }
     })),
   markRead: (chatId) =>
