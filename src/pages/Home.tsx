@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
 import AddContactModal from '../components/AddContactModal';
 import Avatar from '../components/Avatar';
 import ChatScreen from '../components/ChatScreen';
@@ -85,6 +86,51 @@ export default function Home({ tab }: HomeProps) {
       setGroups(groupsQuery.data);
     }
   }, [groupsQuery.data]);
+
+  // Handle invite links automatically on load
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const inviteId = params.get('invite');
+
+    if (!inviteId) {
+      return;
+    }
+
+    // Prevent adding self
+    if (inviteId === currentUser.id) {
+      params.delete('invite');
+      const newQuery = params.toString() ? `?${params.toString()}` : '';
+      window.history.replaceState({}, '', `${window.location.pathname}${newQuery}`);
+      return;
+    }
+
+    let isSubscribed = true;
+
+    contactService
+      .addContact({ deepLink: window.location.href })
+      .then((newContact) => {
+        if (!isSubscribed) return;
+        setContacts([...contacts.filter((c) => c.id !== newContact.id), newContact]);
+        
+        params.delete('invite');
+        const newQuery = params.toString() ? `?${params.toString()}` : '';
+        window.history.replaceState({}, '', `${window.location.pathname}${newQuery}`);
+        
+        alert(`Successfully added contact: ${newContact.username}`);
+      })
+      .catch((err) => {
+        if (!isSubscribed) return;
+        console.error('Failed to add contact from invite link:', err);
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [currentUser, setContacts, contacts]);
 
   useEffect(() => {
     if (!activeThread) {
@@ -233,193 +279,235 @@ export default function Home({ tab }: HomeProps) {
         </div>
       </div>
 
-      <main className="space-y-5 px-5 pt-5">
+      <main className="space-y-5 px-5 pt-5 overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-10">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
           </div>
-        ) : tab === 'chats' ? (
-          <section className="space-y-5">
-            {isDirectThreadOpen && activeThread ? (
-              <div>
-                <button
-                  onClick={closeActiveThread}
-                  className="mb-4 rounded-full border border-border bg-surface px-4 py-2 text-sm text-text-secondary hover:bg-background"
-                >
-                  Back to chats
-                </button>
-                <ChatScreen
-                  chatId={activeThread.id}
-                  messages={activeMessages}
-                  recipientName={activeThread.name}
-                  onSend={addMessage}
-                />
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-text">Your chats</h2>
-                  <button
-                    onClick={() => setShowAddContact(true)}
-                    className="rounded-full border border-border px-3 py-2 text-sm font-semibold text-text hover:bg-surface"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {directChatCards.length ? (
-                    directChatCards.map(({ chatId, contact, latestMessage }) => (
-                      <button
-                        key={chatId}
-                        onClick={() => openDirectChat(contact)}
-                        className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface px-4 py-4 text-left transition hover:bg-background"
-                      >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <Avatar username={contact.username} avatar={contact.avatar} size={40} />
-                          <div className="min-w-0">
-                            <p className="text-base font-semibold text-text">{contact.username}</p>
-                            <p className="mt-1 truncate text-sm text-text-secondary">
-                              {getPreviewText(latestMessage?.text, latestMessage?.voiceUrl)}
-                            </p>
-                          </div>
-                        </div>
-                        <StatusDot status={contact.status} />
-                      </button>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-border bg-surface p-4 text-sm text-text-secondary">
-                      No chats yet. Add a contact to start messaging.
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </section>
-        ) : tab === 'contacts' ? (
-          <section className="space-y-4">
-            {isDirectThreadOpen && activeThread ? (
-              <div>
-                <button
-                  onClick={closeActiveThread}
-                  className="mb-4 rounded-full border border-border bg-surface px-4 py-2 text-sm text-text-secondary hover:bg-background"
-                >
-                  Back to contacts
-                </button>
-                <ChatScreen
-                  chatId={activeThread.id}
-                  messages={activeMessages}
-                  recipientName={activeThread.name}
-                  onSend={addMessage}
-                />
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-text">Contacts</h2>
-                  <button
-                    onClick={() => setShowAddContact(true)}
-                    className="rounded-full border border-border px-3 py-2 text-sm font-semibold text-text hover:bg-surface"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {filteredContacts.length ? (
-                    filteredContacts.map((contact) => (
-                      <button
-                        key={contact.id}
-                        onClick={() => openDirectChat(contact)}
-                        className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface px-4 py-4 text-left transition hover:bg-background"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar username={contact.username} avatar={contact.avatar} size={32} />
-                          <div>
-                            <p className="text-base font-medium text-text">{contact.username}</p>
-                            <p className="mt-1 text-sm text-text-secondary">{contact.status}</p>
-                          </div>
-                        </div>
-                        <StatusDot status={contact.status} />
-                      </button>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-border bg-surface p-4 text-sm text-text-secondary">
-                      {searchQuery ? 'No contacts match your search.' : 'Add someone to start messaging.'}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </section>
         ) : (
-          <section className="space-y-4">
-            {isGroupThreadOpen && activeThread ? (
-              <div>
-                <button
-                  onClick={closeActiveThread}
-                  className="mb-4 rounded-full border border-border bg-surface px-4 py-2 text-sm text-text-secondary hover:bg-background"
-                >
-                  Back to rooms
-                </button>
-                <ChatScreen
-                  chatId={activeThread.id}
-                  messages={activeMessages}
-                  recipientName={activeThread.name}
-                  onSend={addMessage}
-                />
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-text">Rooms</h2>
-                  <button
-                    onClick={() => setShowCreateRoom(true)}
-                    className="rounded-full border border-border px-3 py-2 text-sm font-semibold text-text hover:bg-surface"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {roomCards.length ? (
-                    roomCards.map(({ group, latestMessage }) => (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+            >
+              {tab === 'chats' ? (
+                <section className="space-y-5">
+                  {isDirectThreadOpen && activeThread ? (
+                    <div>
                       <button
-                        key={group.id}
-                        onClick={() => openGroupChat(group)}
-                        className="w-full rounded-2xl border border-border bg-surface px-4 py-4 text-left transition hover:bg-background"
+                        onClick={closeActiveThread}
+                        className="mb-4 rounded-full border border-border bg-surface px-4 py-2 text-sm text-text-secondary hover:bg-background"
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-base font-medium text-text">{group.name}</p>
-                          <span className="text-xs text-text-secondary">
-                            {group.members.length} member{group.members.length === 1 ? '' : 's'}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm text-text-secondary">
-                          {getPreviewText(latestMessage?.text, latestMessage?.voiceUrl)}
-                        </p>
+                        Back to chats
                       </button>
-                    ))
+                      <ChatScreen
+                        chatId={activeThread.id}
+                        messages={activeMessages}
+                        recipientName={activeThread.name}
+                        onSend={addMessage}
+                      />
+                    </div>
                   ) : (
-                    <div className="rounded-2xl border border-border bg-surface p-4 text-sm text-text-secondary">
-                      {searchQuery ? 'No rooms match your search.' : 'Create a room to start a shared chat.'}
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold text-text">Your chats</h2>
+                        <button
+                          onClick={() => setShowAddContact(true)}
+                          className="rounded-full border border-border px-3 py-2 text-sm font-semibold text-text hover:bg-surface"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {directChatCards.length ? (
+                          directChatCards.map(({ chatId, contact, latestMessage }) => (
+                            <button
+                              key={chatId}
+                              onClick={() => openDirectChat(contact)}
+                              className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface px-4 py-4 text-left transition hover:bg-background"
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                <Avatar username={contact.username} avatar={contact.avatar} size={40} />
+                                <div className="min-w-0">
+                                  <p className="text-base font-semibold text-text">{contact.username}</p>
+                                  <p className="mt-1 truncate text-sm text-text-secondary">
+                                    {getPreviewText(latestMessage?.text, latestMessage?.voiceUrl)}
+                                  </p>
+                                </div>
+                              </div>
+                              <StatusDot status={contact.status} />
+                            </button>
+                          ))
+                        ) : (
+                          <div className="rounded-2xl border border-border bg-surface p-4 text-sm text-text-secondary">
+                            No chats yet. Add a contact to start messaging.
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
-                </div>
-              </>
-            )}
-          </section>
+                </section>
+              ) : tab === 'contacts' ? (
+                <section className="space-y-4">
+                  {isDirectThreadOpen && activeThread ? (
+                    <div>
+                      <button
+                        onClick={closeActiveThread}
+                        className="mb-4 rounded-full border border-border bg-surface px-4 py-2 text-sm text-text-secondary hover:bg-background"
+                      >
+                        Back to contacts
+                      </button>
+                      <ChatScreen
+                        chatId={activeThread.id}
+                        messages={activeMessages}
+                        recipientName={activeThread.name}
+                        onSend={addMessage}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold text-text">Contacts</h2>
+                        <button
+                          onClick={() => setShowAddContact(true)}
+                          className="rounded-full border border-border px-3 py-2 text-sm font-semibold text-text hover:bg-surface"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {filteredContacts.length ? (
+                          filteredContacts.map((contact) => (
+                            <button
+                              key={contact.id}
+                              onClick={() => openDirectChat(contact)}
+                              className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface px-4 py-4 text-left transition hover:bg-background"
+                            >
+                              <div className="flex items-center gap-3">
+                                <Avatar username={contact.username} avatar={contact.avatar} size={32} />
+                                <div>
+                                  <p className="text-base font-medium text-text">{contact.username}</p>
+                                  <p className="mt-1 text-sm text-text-secondary">{contact.status}</p>
+                                </div>
+                              </div>
+                              <StatusDot status={contact.status} />
+                            </button>
+                          ))
+                        ) : (
+                          <div className="rounded-2xl border border-border bg-surface p-4 text-sm text-text-secondary">
+                            {searchQuery ? 'No contacts match your search.' : 'Add someone to start messaging.'}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </section>
+              ) : (
+                <section className="space-y-4">
+                  {isGroupThreadOpen && activeThread ? (
+                    <div>
+                      <button
+                        onClick={closeActiveThread}
+                        className="mb-4 rounded-full border border-border bg-surface px-4 py-2 text-sm text-text-secondary hover:bg-background"
+                      >
+                        Back to rooms
+                      </button>
+                      <ChatScreen
+                        chatId={activeThread.id}
+                        messages={activeMessages}
+                        recipientName={activeThread.name}
+                        onSend={addMessage}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold text-text">Rooms</h2>
+                        <button
+                          onClick={() => setShowCreateRoom(true)}
+                          className="rounded-full border border-border px-3 py-2 text-sm font-semibold text-text hover:bg-surface"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <div className="space-y-3">
+                        {roomCards.length ? (
+                          roomCards.map(({ group, latestMessage }) => (
+                            <button
+                              key={group.id}
+                              onClick={() => openGroupChat(group)}
+                              className="w-full rounded-2xl border border-border bg-surface px-4 py-4 text-left transition hover:bg-background"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-base font-medium text-text">{group.name}</p>
+                                <span className="text-xs text-text-secondary">
+                                  {group.members.length} member{group.members.length === 1 ? '' : 's'}
+                                </span>
+                              </div>
+                              <p className="mt-2 text-sm text-text-secondary">
+                                {getPreviewText(latestMessage?.text, latestMessage?.voiceUrl)}
+                              </p>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="rounded-2xl border border-border bg-surface p-4 text-sm text-text-secondary">
+                            {searchQuery ? 'No rooms match your search.' : 'Create a room to start a shared chat.'}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </section>
+              )}
+            </motion.div>
+          </AnimatePresence>
         )}
       </main>
 
-      {showAddContact ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 px-4 py-4 sm:items-center">
-          <AddContactModal onClose={() => setShowAddContact(false)} />
-        </div>
-      ) : null}
+      <AnimatePresence>
+        {showAddContact ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 px-4 py-4 sm:items-center"
+          >
+            <motion.div
+              initial={{ y: 50, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 50, opacity: 0, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="w-full max-w-xl"
+            >
+              <AddContactModal onClose={() => setShowAddContact(false)} />
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
-      {showCreateRoom ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 px-4 py-4 sm:items-center">
-          <CreateRoomModal onClose={() => setShowCreateRoom(false)} onCreated={handleRoomCreated} />
-        </div>
-      ) : null}
+      <AnimatePresence>
+        {showCreateRoom ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 px-4 py-4 sm:items-center"
+          >
+            <motion.div
+              initial={{ y: 50, opacity: 0, scale: 0.95 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 50, opacity: 0, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="w-full max-w-xl"
+            >
+              <CreateRoomModal onClose={() => setShowCreateRoom(false)} onCreated={handleRoomCreated} />
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       {!activeThread ? (
         <button

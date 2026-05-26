@@ -52,6 +52,23 @@ function parseDeepLink(deepLink: string): { userId?: string; username?: string }
     return { userId: decodeURIComponent(trimmed.replace('voxlink://user/', '')) };
   }
 
+  // Parse standard HTTP/HTTPS web invite links
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const url = new URL(trimmed);
+      const inviteId = url.searchParams.get('invite');
+      if (inviteId) {
+        return { userId: inviteId };
+      }
+
+      if (url.pathname.startsWith('/user/')) {
+        return { userId: decodeURIComponent(url.pathname.replace('/user/', '')) };
+      }
+    } catch {
+      // Ignore URL parsing exceptions
+    }
+  }
+
   try {
     const parsed = JSON.parse(trimmed) as { type?: string; userId?: string };
     if (parsed.type === 'voxlink' && parsed.userId) {

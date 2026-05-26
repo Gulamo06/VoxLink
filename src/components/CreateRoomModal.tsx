@@ -24,8 +24,9 @@ export default function CreateRoomModal({ onClose, onCreated }: CreateRoomModalP
       const group = await groupService.createGroup(name.trim(), []);
       onCreated(group);
       onClose();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create room.';
+    } catch (err: any) {
+      console.error('Create room error:', err);
+      const message = err?.message || err?.details || (typeof err === 'string' ? err : 'Failed to create room.');
       setError(message);
     } finally {
       setLoading(false);

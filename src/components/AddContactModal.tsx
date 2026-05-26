@@ -23,7 +23,10 @@ export default function AddContactModal({ onClose }: AddContactModalProps) {
         addContact(contact);
         onClose();
       })
-      .catch(() => setError('Failed to add contact from QR code.'))
+      .catch((err) => {
+        console.error('QR code add contact error:', err);
+        setError(err?.message || err?.details || 'Failed to add contact from QR code.');
+      })
       .finally(() => {
         setScanning(false);
         setLoading(false);
@@ -38,8 +41,9 @@ export default function AddContactModal({ onClose }: AddContactModalProps) {
       const contact = await contactService.addContact({ username: query.trim() });
       addContact(contact);
       onClose();
-    } catch {
-      setError('Failed to add contact. Please try again.');
+    } catch (err: any) {
+      console.error('Manual add contact error:', err);
+      setError(err?.message || err?.details || 'Failed to add contact. Please try again.');
     } finally {
       setLoading(false);
     }

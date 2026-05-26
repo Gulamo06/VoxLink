@@ -1,33 +1,24 @@
 # Supabase Configuration Guide
 
-## Setup for Audio Messaging Feature
+To support room creation, user profile matching, contact lists, and realtime audio messaging, you must run the complete database schema in your Supabase dashboard.
 
-Follow these steps to configure your Supabase project to support the audio messaging functionality in VoxLink.
+## 1. Run the Complete SQL Schema (Required)
 
-### 1. Create the `messages` Table
+Instead of setting up tables individually, you should run the pre-configured [voxlink_tables.sql](file:///c:/Users/gchih/OneDrive/Desktop/WEBSITES44/VoxLink/supabase/voxlink_tables.sql) file which creates all required tables, relationships, indexes, storage buckets, and Row-Level Security (RLS) policies:
 
-Go to your Supabase project → SQL Editor and run:
+1. In your **Supabase Dashboard**, navigate to the **SQL Editor** from the left sidebar.
+2. Click **New Query** (or **New blank query**).
+3. Copy the entire contents of [voxlink_tables.sql](file:///c:/Users/gchih/OneDrive/Desktop/WEBSITES44/VoxLink/supabase/voxlink_tables.sql) and paste it into the editor.
+4. Click **Run** in the bottom-right corner of the editor.
 
-```sql
--- Create messages table
-create table messages (
-  id uuid primary key default gen_random_uuid(),
-  chat_id text not null,
-  sender_id text not null,
-  text text,
-  voice_url text,
-  created_at timestamp with time zone default now(),
-  read boolean default false,
-  updated_at timestamp with time zone default now()
-);
+This script automatically creates and configures the following tables:
+* `profiles` (Stores user profiles and presence status)
+* `contacts` (Tracks user contact relationships)
+* `groups` (Stores room information)
+* `group_members` (Maps users to their joined rooms)
+* `messages` (Stores chat text and voice note references)
 
--- Create index for faster queries
-create index idx_messages_chat_id on messages(chat_id);
-create index idx_messages_created_at on messages(created_at desc);
-
--- Enable Realtime
-alter table messages replica identity full;
-```
+---
 
 ### 2. Create the `audio-messages` Storage Bucket
 

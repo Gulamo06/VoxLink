@@ -1,7 +1,8 @@
 import { User } from '../types';
 
 export function generateLink(user: User) {
-  return `voxlink://user/${encodeURIComponent(user.id)}`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://voxlink.vercel.app';
+  return `${origin}/?invite=${encodeURIComponent(user.id)}`;
 }
 
 export function generateQrData(user: User) {
