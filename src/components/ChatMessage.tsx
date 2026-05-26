@@ -1,6 +1,7 @@
 import { Message } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { CheckCheck, Loader2 } from 'lucide-react';
+import AudioPlayer from './AudioPlayer';
 
 interface ChatMessageProps {
   message: Message;
@@ -25,13 +26,16 @@ export default function ChatMessage({ message, isOwn, showTimestamp = true }: Ch
           <p className="break-words text-sm leading-relaxed">{message.text}</p>
         )}
 
-        {/* Voice message */}
+        {/* Voice message with Howler.js player */}
         {isVoiceMessage && (
-          <audio
-            src={message.voiceUrl}
-            controls
-            className="max-w-xs"
-          />
+          <div className="min-w-[200px]">
+            <AudioPlayer
+              audioUrl={message.voiceUrl}
+              autoplay={false}
+              showDownload={false}
+              className={isOwn ? 'bg-primary/20 border-primary/30' : ''}
+            />
+          </div>
         )}
 
         {/* Timestamp and read receipt */}
